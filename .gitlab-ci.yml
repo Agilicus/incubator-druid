@@ -25,4 +25,5 @@ build:
       docker tag $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_REF_NAME $CI_REGISTRY/$CI_PROJECT_PATH:latest
       docker push $CI_REGISTRY/$CI_PROJECT_PATH:latest
     fi
-
+  tags:
+    - big
