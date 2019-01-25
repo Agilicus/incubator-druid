@@ -39,6 +39,7 @@
 # - DRUID_CONFIG_${service} -- full path to a file for druid 'service' properties
 
 set -e
+set -x
 SERVICE="$1"
 
 echo "Starting <<$SERVICE>> @ $(date -Is)"
