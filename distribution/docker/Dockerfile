@@ -46,6 +46,7 @@ COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 COPY --from=builder --chown=druid /opt /opt
 COPY distribution/docker/druid.sh /druid.sh
+RUN chown -R druid:druid /opt/druid
 USER druid
 VOLUME /opt/druid/var
 WORKDIR /opt/druid
