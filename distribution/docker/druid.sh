@@ -80,7 +80,7 @@ if [ -n "${ZOOKEEPER}" ]
 then
     setKey _common druid.zk.service.host "${ZOOKEEPER}"
 fi
-setKey $SERVICE druid.host $(hostname)
+#setKey $SERVICE druid.host $(hostname)
 
 env |grep ^druid_ | while read evar
 do
