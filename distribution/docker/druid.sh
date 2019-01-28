@@ -46,7 +46,7 @@ echo "$(date -Is) startup service $SERVICE"
 
 # We put all the config in /tmp/conf to allow for a
 # read-only root filesystem
-cp -r /opt/druid/conf /tmp/conf || echo "WTF?"
+cp -r /opt/druid/conf /tmp/conf || sleep 3600
 
 # Delete the old key (if existing) and append new key=value
 setKey() {
