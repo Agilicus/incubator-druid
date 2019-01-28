@@ -28,10 +28,6 @@ RUN \
  && tar -zxf ./distribution/target/apache-druid-${VER}-bin.tar.gz -C /opt \
  && ln -s /opt/apache-druid-${VER} /opt/druid
 
-RUN mkdir -p /busybox \
- && wget -O /busybox/busybox https://busybox.net/downloads/binaries/1.30.0-i686/busybox \
- && chmod 555 /busybox/busybox
-
 RUN wget -O /opt/druid/extensions/mysql-metadata-storage/mysql-connector-java-5.1.38.jar http://central.maven.org/maven2/mysql/mysql-connector-java/5.1.38/mysql-connector-java-5.1.38.jar \
  && sha256sum --ignore-missing -c /src/distribution/docker/sha256sums.txt 
 
@@ -41,10 +37,11 @@ RUN addgroup --gid 1000 druid \
  && chown -R druid:druid /opt/druid \
  && chmod 775 /opt/druid/var
 
+FROM amd64/busybox:1.30.0-glibc as busybox
 FROM gcr.io/distroless/java
 MAINTAINER Don Bowman <don@agilicus.com>
 
-COPY --from=builder /busybox/busybox /busybox/busybox
+COPY --from=busybox /bin/busybox /busybox/busybox
 RUN ["/busybox/busybox", "--install", "/bin"]
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
