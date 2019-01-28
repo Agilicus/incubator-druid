@@ -17,3 +17,4 @@
 # under the License.
 #
 b95bf9fe25cb5428f378a62fc842e177ca004b4ae1f9054968b2a396dcc1ec22  /opt/druid/extensions/mysql-metadata-storage/mysql-connector-java-5.1.38.jar
+5776b1f4fbff641eb09024483fde28467e81bc74118c0c65ce5a8ad7a1029063  /busybox/busybox
