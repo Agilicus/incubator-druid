@@ -39,14 +39,13 @@
 # - DRUID_CONFIG_${service} -- full path to a file for druid 'service' properties
 
 set -e
-set -x
 SERVICE="$1"
 
 echo "$(date -Is) startup service $SERVICE"
 
 # We put all the config in /tmp/conf to allow for a
 # read-only root filesystem
-cp -r /opt/druid/conf /tmp/conf || sleep 3600
+cp -r /opt/druid/conf /tmp/conf
 
 # Delete the old key (if existing) and append new key=value
 setKey() {
@@ -82,6 +81,7 @@ then
 fi
 
 setKey $SERVICE druid.host $(ip r get 1 | awk '{print $7;exit}')
+
 
 env |grep ^druid_ | while read evar
 do
