@@ -22,7 +22,6 @@ package org.apache.druid.metadata;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -324,7 +323,7 @@ public class IndexerSQLMetadataStorageCoordinator implements IndexerMetadataStor
                 }
               }
 
-              return new SegmentPublishResult(ImmutableSet.copyOf(inserted), true);
+              return SegmentPublishResult.ok(ImmutableSet.copyOf(inserted));
             }
           },
           3,
@@ -333,7 +332,7 @@ public class IndexerSQLMetadataStorageCoordinator implements IndexerMetadataStor
     }
     catch (CallbackFailedException e) {
       if (definitelyNotUpdated.get()) {
-        return SegmentPublishResult.fail();
+        return SegmentPublishResult.fail(e.getMessage());
       } else {
         // Must throw exception if we are not sure if we updated or not.
         throw e;
@@ -813,7 +812,7 @@ public class IndexerSQLMetadataStorageCoordinator implements IndexerMetadataStor
       return jsonMapper.readValue(bytes, DataSourceMetadata.class);
     }
     catch (Exception e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -1102,7 +1101,7 @@ public class IndexerSQLMetadataStorageCoordinator implements IndexerMetadataStor
                           return accumulator;
                         }
                         catch (Exception e) {
-                          throw Throwables.propagate(e);
+                          throw new RuntimeException(e);
                         }
                       }
                     }

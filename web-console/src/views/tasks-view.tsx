@@ -21,8 +21,8 @@ import * as React from 'react';
 import * as classNames from 'classnames';
 import ReactTable from "react-table";
 import { Filter } from "react-table";
-import { Button, H1, ButtonGroup, Intent, Label, Alert } from "@blueprintjs/core";
-import { IconNames } from "@blueprintjs/icons";
+import { Button, Intent, Alert } from "@blueprintjs/core";
+import { ButtonGroup, Label, IconNames } from "../components/filler";
 import { addFilter, QueryManager, getDruidErrorMessage, countBy, formatDuration, queryDruidSql } from "../utils";
 import { AsyncActionDialog } from "../dialogs/async-action-dialog";
 import { SpecDialog } from "../dialogs/spec-dialog";
@@ -503,7 +503,7 @@ ORDER BY "rank" DESC, "created_time" DESC`);
                 <a href={`/druid/indexer/v1/task/${id}/reports`} target="_blank">Reports</a>&nbsp;&nbsp;&nbsp;
                 <a href={`/druid/indexer/v1/task/${id}/log`} target="_blank">Log (all)</a>&nbsp;&nbsp;&nbsp;
                 <a href={`/druid/indexer/v1/task/${id}/log?offset=-8192`} target="_blank">Log (last 8kb)</a>&nbsp;&nbsp;&nbsp;
-                { (status === 'RUNNING') && <a onClick={() => this.setState({ killTaskId: id })}>Kill</a> }
+                { (status === 'RUNNING' || status === 'WAITING' || status === 'PENDING') && <a onClick={() => this.setState({ killTaskId: id })}>Kill</a> }
               </div>
             },
             Aggregated: row => ''
@@ -524,12 +524,12 @@ ORDER BY "rank" DESC, "created_time" DESC`);
       <div className="control-bar">
         <div className="control-label">Supervisors</div>
         <Button
-          icon={IconNames.REFRESH}
+          iconName={IconNames.REFRESH}
           text="Refresh"
           onClick={() => this.supervisorQueryManager.rerunLastQuery()}
         />
         <Button
-          icon={IconNames.PLUS}
+          iconName={IconNames.PLUS}
           text="Submit supervisor"
           onClick={() => this.setState({ supervisorSpecDialogOpen: true })}
         />
@@ -542,43 +542,40 @@ ORDER BY "rank" DESC, "created_time" DESC`);
         <div className="control-label">Tasks</div>
         <Label>Group by</Label>
         <ButtonGroup>
-          <Button active={groupTasksBy === null} onClick={() => this.setState({ groupTasksBy: null })}>None</Button>
-          <Button active={groupTasksBy === 'type'} onClick={() => this.setState({ groupTasksBy: 'type' })}>Type</Button>
-          <Button active={groupTasksBy === 'datasource'} onClick={() => this.setState({ groupTasksBy: 'datasource' })}>Datasource</Button>
-          <Button active={groupTasksBy === 'status'} onClick={() => this.setState({ groupTasksBy: 'status' })}>Status</Button>
+          <Button className={classNames({ 'pt-active': groupTasksBy === null })} onClick={() => this.setState({ groupTasksBy: null })}>None</Button>
+          <Button className={classNames({ 'pt-active': groupTasksBy === 'type' })} onClick={() => this.setState({ groupTasksBy: 'type' })}>Type</Button>
+          <Button className={classNames({ 'pt-active': groupTasksBy === 'datasource' })} onClick={() => this.setState({ groupTasksBy: 'datasource' })}>Datasource</Button>
+          <Button className={classNames({ 'pt-active': groupTasksBy === 'status' })} onClick={() => this.setState({ groupTasksBy: 'status' })}>Status</Button>
         </ButtonGroup>
         <Button
-          icon={IconNames.REFRESH}
+          iconName={IconNames.REFRESH}
           text="Refresh"
           onClick={() => this.taskQueryManager.rerunLastQuery()}
         />
         <Button
-          icon={IconNames.CONSOLE}
+          iconName={IconNames.APPLICATION}
           text="Go to SQL"
           onClick={() => goToSql(this.taskQueryManager.getLastQuery())}
         />
         <Button
-          icon={IconNames.PLUS}
+          iconName={IconNames.PLUS}
           text="Submit task"
           onClick={() => this.setState({ taskSpecDialogOpen: true })}
         />
       </div>
       {this.renderTaskTable()}
-
-      <SpecDialog
-        isOpen={ supervisorSpecDialogOpen }
+      { supervisorSpecDialogOpen ? <SpecDialog
         onClose={() => this.setState({ supervisorSpecDialogOpen: false })}
         onSubmit={this.submitSupervisor}
         title="Submit supervisor"
-      />
-      <SpecDialog
-        isOpen={ taskSpecDialogOpen }
+      /> : null }
+      { taskSpecDialogOpen ? <SpecDialog
         onClose={() => this.setState({ taskSpecDialogOpen: false })}
         onSubmit={this.submitTask}
         title="Submit task"
-      />
+      /> : null }
       <Alert
-        icon={IconNames.ERROR}
+        iconName={IconNames.ERROR}
         intent={Intent.PRIMARY}
         isOpen={Boolean(alertErrorMsg)}
         confirmButtonText="OK"

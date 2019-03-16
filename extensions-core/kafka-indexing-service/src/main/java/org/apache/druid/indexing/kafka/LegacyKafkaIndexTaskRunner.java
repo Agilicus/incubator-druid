@@ -20,6 +20,7 @@
 package org.apache.druid.indexing.kafka;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -50,6 +51,7 @@ import org.apache.druid.indexing.seekablestream.SeekableStreamDataSourceMetadata
 import org.apache.druid.indexing.seekablestream.SeekableStreamIndexTask;
 import org.apache.druid.indexing.seekablestream.SeekableStreamIndexTaskRunner;
 import org.apache.druid.indexing.seekablestream.SeekableStreamPartitions;
+import org.apache.druid.indexing.seekablestream.SequenceMetadata;
 import org.apache.druid.indexing.seekablestream.common.OrderedPartitionableRecord;
 import org.apache.druid.indexing.seekablestream.common.OrderedSequenceNumber;
 import org.apache.druid.indexing.seekablestream.common.RecordSupplier;
@@ -413,23 +415,6 @@ public class LegacyKafkaIndexTaskRunner extends SeekableStreamIndexTaskRunner<In
             }
 
             if (record.offset() < endOffsets.get(record.partition())) {
-              if (record.offset() != nextOffsets.get(record.partition())) {
-                if (ioConfig.isSkipOffsetGaps()) {
-                  log.warn(
-                      "Skipped to offset[%,d] after offset[%,d] in partition[%d].",
-                      record.offset(),
-                      nextOffsets.get(record.partition()),
-                      record.partition()
-                  );
-                } else {
-                  throw new ISE(
-                      "WTF?! Got offset[%,d] after offset[%,d] in partition[%d].",
-                      record.offset(),
-                      nextOffsets.get(record.partition()),
-                      record.partition()
-                  );
-                }
-              }
 
               try {
                 final byte[] valueBytes = record.value();
@@ -489,7 +474,7 @@ public class LegacyKafkaIndexTaskRunner extends SeekableStreamIndexTaskRunner<In
               nextOffsets.put(record.partition(), record.offset() + 1);
             }
 
-            if (nextOffsets.get(record.partition()).equals(endOffsets.get(record.partition()))
+            if (nextOffsets.get(record.partition()) >= (endOffsets.get(record.partition()))
                 && assignment.remove(record.partition())) {
               log.info("Finished reading topic[%s], partition[%,d].", record.topic(), record.partition());
               KafkaIndexTask.assignPartitions(consumer, topic, assignment);
@@ -627,6 +612,14 @@ public class LegacyKafkaIndexTaskRunner extends SeekableStreamIndexTaskRunner<In
     return false;
   }
 
+  @Override
+  public TypeReference<List<SequenceMetadata<Integer, Long>>> getSequenceMetadataTypeReference()
+  {
+    return new TypeReference<List<SequenceMetadata<Integer, Long>>>()
+    {
+    };
+  }
+
   @Nonnull
   @Override
   protected List<OrderedPartitionableRecord<Integer, Long>> getRecords(
@@ -713,20 +706,13 @@ public class LegacyKafkaIndexTaskRunner extends SeekableStreamIndexTaskRunner<In
   }
 
   @Override
-  protected boolean isEndSequenceOffsetsExclusive()
+  protected boolean isEndOffsetExclusive()
   {
-    return false;
+    return true;
   }
 
   @Override
-  protected boolean isStartingSequenceOffsetsExclusive()
-  {
-    return false;
-  }
-
-
-  @Override
-  protected SeekableStreamPartitions<Integer, Long> deserializeSeekableStreamPartitionsFromMetadata(
+  protected SeekableStreamPartitions<Integer, Long> deserializePartitionsFromMetadata(
       ObjectMapper mapper,
       Object object
   )
@@ -812,7 +798,7 @@ public class LegacyKafkaIndexTaskRunner extends SeekableStreamIndexTaskRunner<In
   }
 
   @Override
-  protected Long getSequenceNumberToStoreAfterRead(Long sequenceNumber)
+  protected Long getNextStartOffset(Long sequenceNumber)
   {
     throw new UnsupportedOperationException();
   }
@@ -925,7 +911,7 @@ public class LegacyKafkaIndexTaskRunner extends SeekableStreamIndexTaskRunner<In
       }
     }
     catch (Exception e) {
-      Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -976,7 +962,7 @@ public class LegacyKafkaIndexTaskRunner extends SeekableStreamIndexTaskRunner<In
   }
 
   @Override
-  public Map<Integer, Long> getCurrentOffsets()
+  public ConcurrentMap<Integer, Long> getCurrentOffsets()
   {
     return nextOffsets;
   }
@@ -1177,7 +1163,7 @@ public class LegacyKafkaIndexTaskRunner extends SeekableStreamIndexTaskRunner<In
       return Response.ok().entity(objectMapper.writeValueAsString(getCurrentOffsets())).build();
     }
     catch (JsonProcessingException e) {
-      throw Throwables.propagate(e);
+      throw new RuntimeException(e);
     }
   }
 

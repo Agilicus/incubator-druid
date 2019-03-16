@@ -22,10 +22,11 @@ import * as classNames from 'classnames';
 import ReactTable from "react-table";
 import { Filter } from "react-table";
 import { Button, Intent, Switch } from "@blueprintjs/core";
-import { IconNames } from "@blueprintjs/icons";
+import { IconNames } from "../components/filler";
 import { AppToaster } from '../singletons/toaster';
 import { RuleEditor } from '../components/rule-editor';
 import { AsyncActionDialog } from '../dialogs/async-action-dialog';
+import { RetentionDialog } from '../dialogs/retention-dialog';
 import {
   addFilter,
   formatNumber,
@@ -35,7 +36,6 @@ import {
   QueryManager,
   pluralIfNeeded, queryDruidSql, getDruidErrorMessage
 } from "../utils";
-import { RetentionDialog } from '../dialogs/retention-dialog';
 
 import "./datasource-view.scss";
 
@@ -362,9 +362,12 @@ GROUP BY 1`);
                 text = DatasourcesView.formatRules(rules);
               }
 
-              return <span>
+              return <span
+                onClick={() => this.setState({retentionDialogOpenOn: { datasource: row.original.datasource, rules: row.original.rules }})}
+                className={"clickable-cell"}
+              >
                 {text}&nbsp;
-                <a onClick={() => this.setState({retentionDialogOpenOn: { datasource: row.original.datasource, rules: row.original.rules }})}>&#x270E;</a>
+                <a>&#x270E;</a>
               </span>;
             }
           },
@@ -439,12 +442,12 @@ GROUP BY 1`);
       <div className="control-bar">
         <div className="control-label">Datasources</div>
         <Button
-          icon={IconNames.REFRESH}
+          iconName={IconNames.REFRESH}
           text="Refresh"
           onClick={() => this.datasourceQueryManager.rerunLastQuery()}
         />
         <Button
-          icon={IconNames.CONSOLE}
+          iconName={IconNames.APPLICATION}
           text="Go to SQL"
           onClick={() => goToSql(this.datasourceQueryManager.getLastQuery())}
         />
