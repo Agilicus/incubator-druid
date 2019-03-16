@@ -1,29 +1,98 @@
 ---
-image: cr.agilicus.com/corp-tools/docker-compose
-
-variables:
-  DOCKER_DRIVER: overlay2
-  DOCKER_HOST: tcp://localhost:2375
-
-services:
-  - name: docker:dind
-
 stages:
+  - lint
+  - test
+  - autorel
   - build
+  - release
 
+#
+# Check that the commit message is in conventional-commit
+# format (https://www.conventionalcommits.org/).
+# As a special case if this is a merge request, allow that
+# format.
+lint:
+  stage: lint
+  image: cr.agilicus.com/corp-tools/build-containers/conform
+  script: |
+    [ -n "$CI_MERGE_REQUEST_ID" ] && /usr/local/bin/conform enforce || true
+
+#
+# Run any tests against the code that we want prior to doing a release
+test:
+  stage: test
+  script: |
+    true
+
+#
+# (only on the integration branch) created a 'standard release'
+# [see](https://github.com/conventional-changelog/standard-version)
+# - update CHANGELOG.md
+# - create a tag vM.m.b
+# - push tag to repo
+# - push CHANGELOG.md to repo
+# The use of 'conventional-commit' messages is required (fix/feat)
+# see [conventional-commits](https://www.conventionalcommits.org/)
+#
+autorel:
+  stage: autorel
+  image: cr.agilicus.com/corp-tools/build-containers/release
+  script: |
+    if [ -n "$CI_COMMIT_TAG" ]
+    then
+      echo "Skip autorel, CI_COMMIT_TAG=$CI_COMMIT_TAG is present"
+    else
+      ssh-key-from-env
+      standard-version
+      echo "Tags..."
+      git tag
+      git push -v --follow-tags -u origin HEAD:integration
+    fi
+  only:
+    - integration
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /^chore\(release\)/
+
+#
+# This stage does a docker build, and then push to registry
+# The image will be called 'group/repo:branch'
+# If branch == integration, it will also be pushed to 'latest'
+# If a commit tag vM.m.b exists, then the image will also be tagged as
+#  - image:M.m.b
+#  - image:M.m
+#  - image:M
+#
 build:
   stage: build
+  image: cr.agilicus.com/corp-tools/docker-compose
+  services:
+    - name: docker:dind
   script: |
-    ping -c1 -4 docker > /dev/null 2>&1 && DOCKER_HOST=tcp://docker:2375
-    echo DOCKER_HOST=$DOCKER_HOST
-    docker login -u $CI_REGISTRY_USER -p $CI_BUILD_TOKEN $CI_REGISTRY;
-    docker build -t $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_REF_NAME -f distribution/docker/Dockerfile .
-    docker push $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_REF_NAME
-    if [ "$CI_COMMIT_REF_NAME" = "integration" ];
+    if [ -z "$CI_COMMIT_TAG" ] && [[ $CI_COMMIT_MESSAGE =~ ^chore\(release\) ]]
     then
-      echo Tag $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_REF_NAME to $CI_REGISTRY/$CI_PROJECT_PATH:latest
-      docker tag $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_REF_NAME $CI_REGISTRY/$CI_PROJECT_PATH:latest
-      docker push $CI_REGISTRY/$CI_PROJECT_PATH:latest
+      echo "Skip build, get it on the tagged path"
+    else
+      std-build-tag-push -b integration -f distribution/docker/Dockerfile
     fi
   tags:
     - big
+
+#
+# If a tag is present, this could mean that the 'autorel' has
+# fired, and that a build of that is now present, we might
+# choose to push to external repo etc.
+#
+release:
+  stage: release
+  image: cr.agilicus.com/corp-tools/build-containers/release
+  script: |
+    echo "A new release, tag is $CI_COMMIT_TAG"
+    # nothing to do here
+  except:
+    - branches
+  only:
+    - tags
+
