@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+# [](https://git.agilicus.com/druid/druid/compare/v1.1.1...v) (2019-03-21)
+
+
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
 # [](https://git.agilicus.com/druid/druid/compare/v1.1.0...v) (2019-03-19)
 
 
